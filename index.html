@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Table</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #21262d;
+  --accent: #58a6ff;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --green: #3fb950;
+  --red: #f78166;
+  --orange: #ffa657;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  min-height: 100vh;
+  padding: 1.5rem 1rem 3rem;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  gap: 0.75rem;
+  animation: fadeUp 0.5s ease;
+}
+.title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(1.4rem, 5vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+.title span { color: var(--accent); }
+.header-right { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end; }
+
+.login-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.login-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.admin-badge {
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(63,185,80,0.12);
+  border: 1px solid rgba(63,185,80,0.3);
+  color: var(--green);
+  padding: 0.38rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+}
+.admin-badge.on { display: flex; }
+.admin-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+
+.logout-btn {
+  display: none;
+  background: transparent;
+  border: 1px solid rgba(247,129,102,0.3);
+  color: var(--red);
+  padding: 0.38rem 0.85rem;
+  border-radius: 20px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.logout-btn:hover { background: rgba(247,129,102,0.08); }
+.logout-btn.on { display: block; }
+
+.reset-btn {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.38rem 0.85rem;
+  border-radius: 20px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.reset-btn:hover { border-color: var(--red); color: var(--red); }
+body.admin .reset-btn { display: block; }
+
+/* EDIT HINT */
+.edit-hint {
+  display: none;
+  font-size: 0.68rem;
+  color: var(--orange);
+  text-align: center;
+  margin-bottom: 1rem;
+  letter-spacing: 0.06em;
+}
+body.admin .edit-hint { display: block; }
+
+/* MODAL */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(5px);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.overlay.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  width: 92%;
+  max-width: 340px;
+  position: relative;
+  animation: modalPop 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.modal-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.02em;
+}
+.modal-close {
+  position: absolute;
+  top: 0.9rem; right: 0.9rem;
+  background: none; border: none;
+  color: var(--muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.modal-close:hover { background: var(--border); color: var(--text); }
+
+.form-grp { margin-bottom: 1rem; }
+.form-grp label {
+  display: block;
+  font-size: 0.66rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.4rem;
+}
+.form-grp input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-grp input:focus { border-color: var(--accent); }
+
+.modal-submit {
+  width: 100%;
+  background: var(--accent);
+  color: #0d1117;
+  border: none;
+  border-radius: 8px;
+  padding: 0.78rem;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.modal-submit:hover { opacity: 0.88; }
+.modal-submit:active { transform: scale(0.98); }
+
+/* MOBILE TABS */
+.mobile-tabs {
+  display: none;
+  gap: 0.4rem;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+  padding-bottom: 0.3rem;
+  scrollbar-width: none;
+  animation: fadeUp 0.4s ease 0.1s both;
+}
+.mobile-tabs::-webkit-scrollbar { display: none; }
+
+.day-tab {
+  flex-shrink: 0;
+  padding: 0.45rem 0.95rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.day-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0d1117;
+  font-weight: 600;
+}
+
+/* MOBILE PERIOD CARDS */
+.mobile-periods {
+  display: none;
+  flex-direction: column;
+  gap: 0.45rem;
+  animation: fadeUp 0.3s ease both;
+}
+
+.period-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  transition: border-color 0.2s;
+}
+body.admin .period-card:hover { border-color: rgba(88,166,255,0.4); }
+
+.period-num {
+  font-size: 0.62rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  min-width: 26px;
+  text-align: center;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+}
+
+.interval-bar {
+  background: #1c2128;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
+  color: var(--orange);
+  text-transform: uppercase;
+}
+
+/* DESKTOP TABLE */
+.table-wrap {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  animation: fadeUp 0.5s ease 0.1s both;
+}
+table { width: 100%; border-collapse: collapse; }
+
+thead th {
+  background: var(--surface);
+  padding: 0.78rem 0.45rem;
+  text-align: center;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+  white-space: nowrap;
+}
+thead th.th-day {
+  color: var(--muted);
+  border-bottom-color: var(--border);
+  text-align: left;
+  padding-left: 1rem;
+}
+thead th.th-break {
+  color: var(--orange) !important;
+  background: #1c2128 !important;
+  border-bottom-color: var(--border) !important;
+  font-size: 0.6rem !important;
+}
+
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+tbody tr:hover { background: rgba(88,166,255,0.035); }
+tbody tr:last-child { border-bottom: none; }
+
+.td-day {
+  padding: 0.85rem 1rem;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+.td-sub {
+  padding: 0.5rem 0.3rem;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  vertical-align: middle;
+}
+.td-sub:last-child { border-right: none; }
+.td-break { background: #1c2128; border-right: 1px solid var(--border) !important; }
+
+body.admin .td-sub { cursor: pointer; }
+body.admin .td-sub:hover .pill { filter: brightness(1.2); transform: scale(1.06); }
+
+/* PILLS */
+.pill {
+  display: inline-block;
+  padding: 0.28rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  transition: filter 0.15s, transform 0.15s;
+}
+.edit-input {
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.66rem;
+  padding: 0.26rem 0.45rem;
+  width: 78px;
+  outline: none;
+}
+
+/* Subject colors */
+.c-ENG   { background:rgba(63,185,80,.15);   color:#3fb950; border:1px solid rgba(63,185,80,.25); }
+.c-MATHS { background:rgba(88,166,255,.15);  color:#58a6ff; border:1px solid rgba(88,166,255,.25); }
+.c-PHY   { background:rgba(210,168,255,.15); color:#d2a8ff; border:1px solid rgba(210,168,255,.25); }
+.c-CHEM  { background:rgba(247,129,102,.15); color:#f78166; border:1px solid rgba(247,129,102,.25); }
+.c-BIO   { background:rgba(86,211,100,.15);  color:#56d364; border:1px solid rgba(86,211,100,.25); }
+.c-GEO   { background:rgba(255,166,87,.15);  color:#ffa657; border:1px solid rgba(255,166,87,.25); }
+.c-HINDI { background:rgba(255,123,114,.15); color:#ff7b72; border:1px solid rgba(255,123,114,.25); }
+.c-COMP  { background:rgba(139,148,158,.15); color:#8b949e; border:1px solid rgba(139,148,158,.25); }
+.c-HIS   { background:rgba(187,128,9,.15);   color:#e3b341; border:1px solid rgba(187,128,9,.25); }
+.c-GAMES { background:rgba(23,162,184,.15);  color:#17a2b8; border:1px solid rgba(23,162,184,.25); }
+.c-LIB   { background:rgba(108,117,125,.15); color:#adb5bd; border:1px solid rgba(108,117,125,.25); }
+.c-SUPW  { background:rgba(255,193,7,.15);   color:#ffc107; border:1px solid rgba(255,193,7,.25); }
+
+/* LEGEND */
+.legend { margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.4rem; animation: fadeUp 0.5s ease 0.2s both; }
+.legend-title { width:100%; font-size:0.64rem; color:var(--muted); letter-spacing:0.15em; text-transform:uppercase; margin-bottom:0.2rem; }
+
+/* RESPONSIVE */
+@media (max-width: 680px) {
+  .table-wrap { display: none; }
+  .mobile-tabs { display: flex; }
+  .mobile-periods { display: flex; }
+}
+@media (min-width: 681px) {
+  .table-wrap { display: block; }
+  .mobile-tabs { display: none; }
+  .mobile-periods { display: none; }
+}
+
+/* ANIMATIONS */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+@keyframes modalPop {
+  from { opacity:0; transform:scale(0.9); }
+  to   { opacity:1; transform:scale(1); }
+}
+</style>
+</head>
+<body>
+
+<div style="max-width:1100px;margin:0 auto;">
+
+  <div class="header">
+    <div class="title">TIME <span>TABLE</span></div>
+    <div class="header-right">
+      <div class="admin-badge" id="adminBadge"><span class="admin-dot"></span>Editing</div>
+      <button class="reset-btn" id="resetBtn" onclick="resetData()">↺ Reset</button>
+      <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
+      <button class="login-btn" id="loginBtn" onclick="openModal()">Login</button>
+    </div>
+  </div>
+
+  <div class="edit-hint">✎ Tap any subject to rename it</div>
+
+  <div class="mobile-tabs" id="mobileTabs"></div>
+  <div class="mobile-periods" id="mobilePeriods"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="th-day">Day</th>
+          <th>I</th><th>II</th><th>III</th><th>IV</th>
+          <th class="th-break">☕ Break</th>
+          <th>V</th><th>VI</th><th>VII</th><th>VIII</th>
+        </tr>
+      </thead>
+      <tbody id="ttBody"></tbody>
+    </table>
+  </div>
+
+  <div class="legend" id="legend"><div class="legend-title">Subjects</div></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Sign In</div>
+    <div class="form-grp">
+      <label>Username</label>
+      <input type="text" id="uInput" placeholder="username" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="form-grp">
+      <label>Password</label>
+      <input type="password" id="pInput" placeholder="••••••••">
+    </div>
+    <button class="modal-submit" onclick="tryLogin()">Login</button>
+  </div>
+</div>
+
+<script>
+const DEFAULT = [
+  {day:"Monday",    p:["GEO","ENG","ENG","PHY","CHEM","GAMES","HINDI","MATHS"]},
+  {day:"Tuesday",   p:["ENG","ENG","COMP","BIO","HIS/CIV","MATHS","LIBRARY","GEO"]},
+  {day:"Wednesday", p:["GEO","ENG","PHY","CHEM","MATHS","BIO","COMP","HIS/CIV"]},
+  {day:"Thursday",  p:["ENG","HINDI","MATHS","HINDI","BIO","COMP PRAC","MATHS","ENG"]},
+  {day:"Friday",    p:["HIS/CIV","COMP","BIO","HINDI","ENG","MATHS","PHY","CHEM"]},
+  {day:"Saturday",  p:["HINDI","MATHS","PHY","CHEM","SUPW","GEO","HIS/CIV","HINDI"]},
+];
+const CMAP = {
+  ENG:"c-ENG",MATHS:"c-MATHS",PHY:"c-PHY",CHEM:"c-CHEM",BIO:"c-BIO",
+  GEO:"c-GEO",HINDI:"c-HINDI",COMP:"c-COMP","COMP PRAC":"c-COMP",
+  "HIS/CIV":"c-HIS",GAMES:"c-GAMES",LIBRARY:"c-LIB",SUPW:"c-SUPW"
+};
+const CPOOL=["c-ENG","c-MATHS","c-PHY","c-CHEM","c-BIO","c-GEO","c-HINDI","c-COMP","c-HIS","c-GAMES","c-LIB","c-SUPW"];
+const PNUM=["I","II","III","IV","V","VI","VII","VIII"];
+
+let data   = JSON.parse(localStorage.getItem('tt')||'null') || clone(DEFAULT);
+let admin  = false;
+let activeD= 0;
+
+function clone(x){return JSON.parse(JSON.stringify(x));}
+function save(){localStorage.setItem('tt',JSON.stringify(data));}
+function getColor(s){
+  if(CMAP[s]) return CMAP[s];
+  let h=0; for(const c of s) h=(h*31+c.charCodeAt(0))&0xffff;
+  return CPOOL[h%CPOOL.length];
+}
+function pill(s){return `<span class="pill ${getColor(s)}">${s}</span>`;}
+
+// Modal
+function openModal(){
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('uInput').focus(),80);
+}
+function closeModal(){
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('uInput').value='';
+  document.getElementById('pInput').value='';
+}
+function tryLogin(){
+  const u=document.getElementById('uInput').value.trim();
+  const p=document.getElementById('pInput').value;
+  if(u==='buntu'&&p==='buntu'){
+    admin=true;
+    closeModal();
+    document.body.classList.add('admin');
+    document.getElementById('adminBadge').classList.add('on');
+    document.getElementById('logoutBtn').classList.add('on');
+    document.getElementById('loginBtn').style.display='none';
+    render();
+  }
+  // wrong creds: nothing
+}
+function logout(){
+  admin=false;
+  document.body.classList.remove('admin');
+  document.getElementById('adminBadge').classList.remove('on');
+  document.getElementById('logoutBtn').classList.remove('on');
+  document.getElementById('loginBtn').style.display='';
+  render();
+}
+function resetData(){
+  if(!confirm('Reset to original timetable?')) return;
+  data=clone(DEFAULT); save(); render();
+}
+
+document.getElementById('pInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryLogin();});
+document.getElementById('uInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('pInput').focus();});
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
+
+// Edit helpers
+function makeInput(container, di, pi, onDone){
+  const old=data[di].p[pi];
+  const inp=document.createElement('input');
+  inp.type='text'; inp.className='edit-input'; inp.value=old; inp.maxLength=20;
+  container.innerHTML=''; container.appendChild(inp);
+  inp.focus(); inp.select();
+  function commit(){
+    const val=inp.value.trim().toUpperCase()||old;
+    data[di].p[pi]=val; save(); onDone();
+  }
+  inp.addEventListener('blur',commit);
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();inp.blur();}
+    if(e.key==='Escape'){inp.value=old;inp.blur();}
+  });
+}
+
+// Desktop table
+function renderTable(){
+  const tbody=document.getElementById('ttBody');
+  tbody.innerHTML='';
+  data.forEach((row,di)=>{
+    const tr=document.createElement('tr');
+    const dc=document.createElement('td');
+    dc.className='td-day'; dc.textContent=row.day; tr.appendChild(dc);
+    row.p.forEach((s,pi)=>{
+      if(pi===4){const tb=document.createElement('td');tb.className='td-sub td-break';tr.appendChild(tb);}
+      const td=document.createElement('td');
+      td.className='td-sub'; td.innerHTML=pill(s);
+      if(admin) td.addEventListener('click',()=>makeInput(td,di,pi,render));
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+// Mobile
+function renderMobile(){
+  const tabs=document.getElementById('mobileTabs');
+  tabs.innerHTML='';
+  data.forEach((row,di)=>{
+    const btn=document.createElement('button');
+    btn.className='day-tab'+(di===activeD?' active':'');
+    btn.textContent=row.day.slice(0,3);
+    btn.onclick=()=>{activeD=di; renderMobilePeriods(); renderMobileTabs();};
+    tabs.appendChild(btn);
+  });
+  renderMobilePeriods();
+}
+function renderMobileTabs(){
+  document.querySelectorAll('.day-tab').forEach((b,i)=>b.classList.toggle('active',i===activeD));
+}
+function renderMobilePeriods(){
+  const el=document.getElementById('mobilePeriods');
+  el.innerHTML='';
+  data[activeD].p.forEach((s,pi)=>{
+    if(pi===4){
+      const bar=document.createElement('div');
+      bar.className='interval-bar'; bar.textContent='☕  Interval — 20 min'; el.appendChild(bar);
+    }
+    const card=document.createElement('div'); card.className='period-card';
+    const num=document.createElement('span'); num.className='period-num'; num.textContent=PNUM[pi];
+    const pw=document.createElement('span'); pw.innerHTML=pill(s);
+    if(admin){
+      pw.style.cursor='pointer';
+      pw.addEventListener('click',()=>{
+        makeInput(pw,activeD,pi,()=>{
+          renderMobilePeriods(); renderTable(); renderLegend();
+        });
+      });
+    }
+    card.appendChild(num); card.appendChild(pw); el.appendChild(card);
+  });
+}
+
+function renderLegend(){
+  const el=document.getElementById('legend');
+  el.innerHTML='<div class="legend-title">Subjects</div>';
+  [...new Set(data.flatMap(r=>r.p))].sort().forEach(s=>{
+    const sp=document.createElement('span');
+    sp.className=`pill ${getColor(s)}`; sp.textContent=s; el.appendChild(sp);
+  });
+}
+
+function render(){renderTable();renderMobile();renderLegend();}
+render();
+</script>
+</body>
+</html>
